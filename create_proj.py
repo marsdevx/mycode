@@ -60,7 +60,7 @@ def create_project(project_name, target_dir, username, token):
         subprocess.run(["git", "clone", repo_url, project_path], check=True)
         os.chdir(project_path)
         with open(".gitignore", "w") as gitignore:
-            gitignore.write("temp\nimprovements.md\n")
+            gitignore.write("temp\nimpr.md\n__pycache__\n.vscode\n.DS_Store")
         with open("README.md", "w") as readme:
             readme.write("# Repository Status\n\nThis Git repository is currently in beta version. Features and functionality are subject to change. Feedback and contributions are welcome!\n")
         subprocess.run(["git", "add", "."], check=True)
