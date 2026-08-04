@@ -10,17 +10,18 @@
 #                                                                               ⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⡛⠿⠟⣋⣍⣛⣋⣽⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿    #
 
 import os
-import time
 import json
 import parse
 import argparse
 import subprocess
 import argcomplete
-import create_proj as cp
-from argcomplete.completers import ChoicesCompleter
+
+# create_proj pulls in `requests`, which costs ~175ms to import. Only -c needs
+# it, so it is imported inside create() instead of here.
+github_path = os.path.expanduser("~/.config/mycode/config.json")
 
 def check_json():
-  if not os.path.exists(cp.github_path):
+  if not os.path.exists(github_path):
     data = {
       "github": {
         "username": "",
@@ -28,16 +29,18 @@ def check_json():
       }
     }
 
-    with open(cp.github_path, "w") as f:
+    with open(github_path, "w") as f:
       json.dump(data, f, indent=2)
 
 def create(project_name, target_dir):
+  import create_proj as cp
+
   target_dir = os.path.expanduser(target_dir)
   if not os.path.isdir(target_dir):
       print(f"Target directory does not exist: {target_dir}")
       return
-  
-  with open(cp.github_path) as f:
+
+  with open(github_path) as f:
     config_file = json.load(f)
   username = config_file["github"].get("username", "").strip()
   token = config_file["github"].get("token", "").strip()
@@ -49,13 +52,10 @@ def open_project(project_name, not_close):
   if project_name in all_projects:
     project_path = all_projects[project_name]
     print("\033[0;96mEnjoy your work, sir.\033[0m")
-    time.sleep(1.3)
     print(f"Opening project '{project_name}'...")
-    time.sleep(0.3)
     subprocess.run(["code", project_path])
     if not not_close:
       print("Closing terminal...")
-      time.sleep(0.1)
       script = '''
       tell application "iTerm2"
           tell the current window
@@ -94,37 +94,25 @@ desc = ("✨ Manage and organize your projects with mycode ✨\n\n"
 "  - `mycode <project_name> -n`: Open the project without closing the terminal.\n"
 "  - `mycode -c <project_name> <target_dir>`: Create a new project and repository.\n\n"
 "🎯 Shell Autocompletion:\n"
-"  - Autocompletion is supported for Zsh and Bash.\n"
-"  - Make sure to add the following to your shell config (e.g. ~/.zshrc or ~/.bashrc):\n\n"
-"      autoload -Uz compinit bashcompinit\n"
-"      compinit\n"
-"      bashcompinit\n\n"
-"      eval \"$(register-python-argcomplete mycode)\"\n\n"
-"      _mycode() {\n"
-"        if (( CURRENT > 2 )) &&\n"
-"           [[ ${words[CURRENT-2]} == --create || ${words[CURRENT-2]} == -c ]]; then\n"
-"          _files\n"
-"          return\n"
-"        fi\n\n"
-"        if (( CURRENT > 1 )) &&\n"
-"           [[ ${words[CURRENT-1]} == --create || ${words[CURRENT-1]} == -c ]]; then\n"
-"          return\n"
-"        fi\n\n"
-"        _python_argcomplete \"$@\"\n"
-"      }\n\n"
-"      compdef _mycode mycode\n\n"
-"  - Then run:\n"
-"      source ~/.zshrc\n"
-"      or\n"
-"      source ~/.bashrc\n")
+"  - Autocompletion is supported for Zsh and Bash, and is installed for you.\n"
+"  - Zsh only needs the completion system initialized in ~/.zshrc:\n\n"
+"      autoload -Uz compinit\n"
+"      compinit\n\n"
+"  - Then start a new shell, or run:\n"
+"      source ~/.zshrc\n\n"
+"  - No `register-python-argcomplete` line and no hand-written `_mycode`\n"
+"    function are needed. If you added those for an earlier version, remove\n"
+"    them -- they will shadow the installed completion.\n")
 
 def main():
   check_json()
   prog = argparse.ArgumentParser(prog="mycode", add_help=False)
 
-  prog.add_argument("-s", "--show", nargs=1, help="Show the data list").completer = ChoicesCompleter(parse.get_group())
+  # Completers are callables, not prebuilt lists: a list would make every run
+  # scan the project tree just to build the parser, even when not completing.
+  prog.add_argument("-s", "--show", nargs=1, help="Show the data list").completer = lambda **kw: parse.get_group()
   prog.add_argument("-c", "--create", nargs=2, metavar=("project_name", "target_dir"), help="Create a new project and repository")
-  prog.add_argument("project", nargs="?", help="Name of project to open").completer = ChoicesCompleter(parse.get_proj())
+  prog.add_argument("project", nargs="?", help="Name of project to open").completer = lambda **kw: parse.get_proj()
   prog.add_argument("-n", "--not-close", action="store_true", help="Don't close terminal after opening project")
   prog.add_argument("-h", "--help", action="store_true", help=argparse.SUPPRESS)
 

@@ -72,20 +72,39 @@ def parse_config():
             target["remove_rules"].append((remove_path, from_path))
   return global_data
 
+# Directories that hold build output or dependencies. They churn constantly and
+# dwarf the actual source tree, so they say nothing useful about when a project
+# was last worked on.
+IGNORED_DIRS = {
+  "node_modules", "venv", "env", "build", "dist", "target", "out",
+  "__pycache__", ".next", ".cache", "Pods", "vendor", "DerivedData",
+}
+
+# How deep to look for recent edits. Source files that matter live near the top;
+# going deeper costs far more than it improves the ordering.
+MAX_DEPTH = 3
+
+def folder_mtime(path):
+  try:
+    latest_mtime = path.stat().st_mtime
+  except OSError:
+    return 0
+
+  root_depth = len(path.parts)
+  for root, dirs, files in os.walk(path):
+    root_path = Path(root)
+    if len(root_path.parts) - root_depth >= MAX_DEPTH:
+      dirs.clear()
+    else:
+      dirs[:] = [d for d in dirs if d not in IGNORED_DIRS and not d.startswith(".")]
+    for f in files:
+      try:
+        latest_mtime = max(latest_mtime, (root_path / f).stat().st_mtime)
+      except OSError:
+        continue
+  return latest_mtime
+
 def sort_projects_by_mtime(projects):
-  def folder_mtime(path):
-    try:
-      latest_mtime = path.stat().st_mtime
-    except FileNotFoundError:
-      return 0
-    for root, _, files in os.walk(path):
-      for f in files:
-        try:
-          fp = Path(root) / f
-          latest_mtime = max(latest_mtime, fp.stat().st_mtime)
-        except FileNotFoundError:
-          continue
-    return latest_mtime
   return dict(sorted(projects.items(), key=lambda i: folder_mtime(i[1]), reverse=True))
 
 def collect_projects(projects_dir, specific_projects, remove_rules):
