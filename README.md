@@ -52,6 +52,7 @@ To install this project, Launch the Terminal app on your system, and run the com
 1. **Install mycode**
 ```bash
 brew tap marsdevx/mycode
+brew trust marsdevx/mycode
 brew install mycode
 ```
 
@@ -79,38 +80,20 @@ Groups can be defined using `[group:group_name]` syntax in the configuration fil
 ```
 
 3. **Set up Shell Autocompletion**
-> Make sure to add the following to your shell config (e.g. ~/.zshrc or ~/.bashrc):
+> Completion is installed by Homebrew. Zsh only needs the completion system initialized in `~/.zshrc`:
 ```bash
-autoload -Uz compinit bashcompinit
+autoload -Uz compinit
 compinit
-bashcompinit
-
-eval "$(register-python-argcomplete mycode)"
-
-_mycode() {
-  if (( CURRENT > 2 )) &&
-      [[ ${words[CURRENT-2]} == --create || ${words[CURRENT-2]} == -c ]]; then
-    _files
-    return
-  fi
-
-  if (( CURRENT > 1 )) &&
-      [[ ${words[CURRENT-1]} == --create || ${words[CURRENT-1]} == -c ]]; then
-    return
-  fi
-
-  _python_argcomplete "$@"
-}
-
-compdef _mycode mycode
 ```
 
-> Then run:
+> Then start a new shell, or run:
 ```bash
 source ~/.zshrc
-or
-source ~/.bashrc
 ```
+
+> If you set up completion for an earlier version, remove the old
+> `eval "$(register-python-argcomplete mycode)"` line and the hand-written
+> `_mycode` function from your shell config — they shadow the installed completion.
 
 ---
 
@@ -126,7 +109,8 @@ source ~/.bashrc
   Show all projects in the specified group.
 
 - `mycode <project_name>`  
-  Open the specified project in **Visual Studio Code** and automatically close the terminal.
+  Open the specified project in **Visual Studio Code** and automatically close the terminal.  
+  Auto-close is done with AppleScript and requires **macOS** with **iTerm2**. Elsewhere, use `-n`.
 
 - `mycode <project_name> -n`  
   Open the specified project in **VS Code**, but **do not close the terminal**.

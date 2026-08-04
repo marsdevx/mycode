@@ -3,3 +3,5 @@ impr.md
 __pycache__
 .vscode
 .DS_Store
+.claude
+README-mysetup.md
