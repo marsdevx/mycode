@@ -116,7 +116,12 @@ def main():
   prog.add_argument("-n", "--not-close", action="store_true", help="Don't close terminal after opening project")
   prog.add_argument("-h", "--help", action="store_true", help=argparse.SUPPRESS)
 
-  argcomplete.autocomplete(prog, always_complete_options=False)
+  # argcomplete's default validator is a case-sensitive startswith(), so
+  # `mycode home<TAB>` would never offer "HomeLab". Fold both sides.
+  def match_any_case(completion, prefix):
+    return completion.lower().startswith(prefix.lower())
+
+  argcomplete.autocomplete(prog, always_complete_options=False, validator=match_any_case)
   args = prog.parse_args()
 
   if args.create:
